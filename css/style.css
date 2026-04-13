@@ -1,0 +1,38 @@
+* { margin: 0; padding: 0; box-sizing: border-box; }
+html, body {
+    height: 100%;
+    background: #f7f7f7;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+#game-wrap {
+    width: 100%;
+    max-width: 700px;
+    padding: 0 20px;
+}
+canvas {
+    width: 100%;
+    display: block;
+    image-rendering: pixelated;
+    image-rendering: crisp-edges;
+}
+.footer {
+    position: fixed;
+    bottom: 12px;
+    font-family: 'Courier New', monospace;
+    font-size: 11px;
+    color: #aaa;
+    text-align: center;
+    letter-spacing: 0.3px;
+}
+.footer a {
+    color: #999;
+    text-decoration: none;
+}
+.footer a:hover {
+    color: #535353;
+}
+.footer span { margin: 0 6px; }

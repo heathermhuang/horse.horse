@@ -1,0 +1,8 @@
+server.js
+worker.js
+CLAUDE.md
+.claude/
+node_modules/
+wrangler.toml
+.assetsignore
+.git/
