@@ -241,6 +241,31 @@
                 legs: [[4, 17, 2, 7], [9, 17, 2, 7], [17, 17, 2, 7], [22, 17, 2, 7]],
                 jockey: jockeyRun, jockeyDark: jockeyRunDark,
                 eye: null, deadEye, w: 33, h: 24, collisionBoxes: runBoxes
+            },
+            // Idle poses — subtle weight shift + tail swish for pre-game fidget
+            idle1: {
+                body: [
+                    ...torso.slice(0, 13),  // main body without tail
+                    [0, 8, 3, 3],      // tail root
+                    [-1, 11, 3, 3],    // tail mid — slightly up
+                    [-2, 13, 2, 3],    // tail tip — curled up
+                ],
+                // Weight on front legs (back legs slightly lifted)
+                legs: [[4, 17, 2, 7], [9, 17, 2, 6], [17, 17, 2, 6], [22, 17, 2, 7]],
+                jockey: jockeyRun, jockeyDark: jockeyRunDark,
+                eye, w: 33, h: 24, collisionBoxes: runBoxes
+            },
+            idle2: {
+                body: [
+                    ...torso.slice(0, 13),  // main body without tail
+                    [0, 8, 3, 3],      // tail root
+                    [-2, 10, 3, 3],    // tail mid — swished out
+                    [-3, 12, 2, 4],    // tail tip — swished further
+                ],
+                // Weight on back legs (front legs slightly lifted)
+                legs: [[4, 17, 2, 6], [9, 17, 2, 7], [17, 17, 2, 7], [22, 17, 2, 6]],
+                jockey: jockeyRun, jockeyDark: jockeyRunDark,
+                eye, w: 33, h: 24, collisionBoxes: runBoxes
             }
         };
     }
@@ -895,16 +920,19 @@
         } else if (ducking) {
             spr = HORSE.duck;
         } else if (state === 'waiting') {
-            // Blinking while waiting
+            // Idle fidget: slow weight-shift + tail swish + blink
             blinkTimer += 16;
+            const idleCycle = (blinkTimer % 1600);  // 1.6s full cycle
+            const idlePhase = idleCycle < 800 ? 0 : 1; // two phases
+
             if (blinkTimer >= blinkDelay && blinkTimer < blinkDelay + 200) {
                 spr = HORSE.blink;
             } else if (blinkTimer >= blinkDelay + 200) {
                 blinkTimer = 0;
                 blinkDelay = Math.random() * BLINK_TIMING;
-                spr = HORSE.run1;
+                spr = idlePhase === 0 ? HORSE.idle1 : HORSE.idle2;
             } else {
-                spr = HORSE.run1;
+                spr = idlePhase === 0 ? HORSE.idle1 : HORSE.idle2;
             }
         } else if (state === 'intro') {
             spr = HORSE.run1;

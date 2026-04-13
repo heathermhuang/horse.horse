@@ -8,3 +8,5 @@ wrangler.toml
 .git/
 .gitignore
 .wrangler/
+screenshots/
+README.md
