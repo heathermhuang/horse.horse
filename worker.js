@@ -60,8 +60,8 @@ async function handlePostScore(request, env) {
         return jsonResponse({ error: 'Score too high' }, 400);
     }
 
-    // Physics plausibility: max ~15 score/sec at top speed
-    const maxPossible = (playTime / 1000) * 15;
+    // Physics plausibility: max ~20 score/sec at top speed (actual max is ~18)
+    const maxPossible = (playTime / 1000) * 20;
     if (score > maxPossible) {
         return jsonResponse({ error: 'Score/time mismatch' }, 400);
     }
