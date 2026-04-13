@@ -1,0 +1,21 @@
+name = "horse-horse"
+compatibility_date = "2025-03-01"
+# account_id = "YOUR_CLOUDFLARE_ACCOUNT_ID"
+main = "worker.js"
+
+workers_dev = true
+
+# routes = [
+#   { pattern = "horse.horse/*", zone_id = "YOUR_ZONE_ID" },
+#   { pattern = "horse.horse", zone_id = "YOUR_ZONE_ID" }
+# ]
+
+[assets]
+directory = "./"
+binding = "ASSETS"
+not_found_handling = "none"
+
+[[d1_databases]]
+binding = "DB"
+database_name = "horse-leaderboard"
+# database_id = "YOUR_D1_DATABASE_ID"

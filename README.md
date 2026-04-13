@@ -42,12 +42,13 @@ A Chrome Dinosaur Game clone with a pixel-art horse and jockey. Jump over racing
 ## Architecture
 
 ```
-index.html          <- minimal shell: canvas + script tag
-js/game.js          <- entire game in a single IIFE (~1200 lines)
-worker.js           <- Cloudflare Worker: GET/POST /api/scores + static fallback
-css/style.css       <- centered layout, pixelated canvas rendering
-terms.html          <- Terms of Service
-privacy.html        <- Privacy Policy
+index.html              <- minimal shell: canvas + script tag
+js/game.js              <- entire game in a single IIFE (~1200 lines)
+worker.js               <- Cloudflare Worker: GET/POST /api/scores + static fallback
+css/style.css           <- centered layout, pixelated canvas rendering
+terms.html              <- Terms of Service
+privacy.html            <- Privacy Policy
+wrangler.toml.example   <- Cloudflare config template (copy to wrangler.toml)
 ```
 
 ### Leaderboard API
@@ -78,13 +79,21 @@ No build step, no npm install, no dependencies. Just a static file server.
 ## Deployment
 
 ```bash
-# Deploy to Cloudflare Workers
+# Copy and fill in your Cloudflare IDs
+cp wrangler.toml.example wrangler.toml
+# Edit wrangler.toml with your account_id, zone_id, database_id
+
+# Create the D1 database
+npx wrangler d1 create horse-leaderboard
+npx wrangler d1 execute horse-leaderboard --remote --command "CREATE TABLE IF NOT EXISTS scores (id INTEGER PRIMARY KEY AUTOINCREMENT, score INTEGER NOT NULL, country TEXT DEFAULT 'XX', session_id TEXT, max_speed REAL, obstacles_passed INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+
+# Deploy
 npx wrangler deploy
 ```
 
 Requires a Cloudflare account with:
 - Workers plan
-- D1 database (`horse-leaderboard`)
+- D1 database
 - DNS zone for `horse.horse`
 
 ## Vibe Coded
