@@ -656,9 +656,9 @@
                 g.triggered = true;
                 g.x = W + 20;
             }
-            if (g.triggered && !g.passed) {
+            if (g.triggered) {
                 g.x -= currentSpeed * dtScale;
-                if (g.x + 30 < 40) {
+                if (!g.passed && g.x + 30 < 40) {
                     g.passed = true;
                     ghostNotification = { flag: countryFlag(g.country), score: g.score, rank: g.rank, timer: 2000 };
                     sfxGhostPass();
@@ -920,13 +920,13 @@
         if (ghostNotification) {
             const alpha = Math.min(1, ghostNotification.timer / 500);
             ctx.globalAlpha = alpha;
-            ctx.font = '16px sans-serif';
+            ctx.font = '18px sans-serif';
             ctx.textAlign = 'center';
             ctx.textBaseline = 'middle';
-            ctx.fillText(ghostNotification.flag, W / 2 - 35, 50);
+            ctx.fillText(ghostNotification.flag, W / 2 - 40, 25);
             ctx.font = 'bold 11px "Courier New", monospace';
             ctx.fillStyle = isNight ? '#ffcc00' : '#cc8800';
-            ctx.fillText('#' + ghostNotification.rank + '  ' + String(ghostNotification.score).padStart(5, '0'), W / 2 + 10, 50);
+            ctx.fillText('#' + ghostNotification.rank + '  ' + String(ghostNotification.score).padStart(5, '0'), W / 2 + 10, 25);
             ctx.globalAlpha = 1.0;
         }
 
@@ -961,35 +961,60 @@
     function drawLeaderboard() {
         if (leaderboard.length === 0) return;
         const isDead = state === 'dead';
-        const count = isDead ? Math.min(10, leaderboard.length) : Math.min(5, leaderboard.length);
-        const lineH = 11;
-        const startY = 26;
-        const startX = 8;
-
-        ctx.globalAlpha = isDead ? 0.85 : 0.25;
-        ctx.textAlign = 'left';
-        ctx.textBaseline = 'top';
 
         if (isDead) {
-            ctx.font = 'bold 8px "Courier New", monospace';
-            ctx.fillStyle = fg();
-            ctx.fillText('LEADERBOARD', startX, startY - 12);
-        }
+            // Death screen: show top 10 below the game-over area
+            const count = Math.min(10, leaderboard.length);
+            const startY = H / 2 + 28;
+            const lineH = 11;
+            ctx.globalAlpha = 0.85;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
 
-        ctx.font = '8px "Courier New", monospace';
-        for (let i = 0; i < count; i++) {
-            const entry = leaderboard[i];
-            const flag = countryFlag(entry.country);
-            const scoreStr = String(entry.score).padStart(5, '0');
-            const rank = String(i + 1).padStart(2, ' ');
-            // Two columns on death screen
-            const col = isDead && i >= 5 ? 1 : 0;
-            const row = isDead && i >= 5 ? i - 5 : i;
-            const x = col === 0 ? startX : startX + 105;
-            ctx.fillStyle = fg();
-            ctx.fillText(rank + '. ' + flag + ' ' + scoreStr, x, startY + row * lineH);
+            // Two columns centered
+            const colW = 130;
+            const totalW = count > 5 ? colW * 2 : colW;
+            const baseX = Math.round((W - totalW) / 2);
+
+            for (let i = 0; i < count; i++) {
+                const entry = leaderboard[i];
+                const flag = countryFlag(entry.country);
+                const scoreStr = String(entry.score).padStart(5, '0');
+                const rank = String(i + 1).padStart(2, ' ');
+                const col = i >= 5 ? 1 : 0;
+                const row = i >= 5 ? i - 5 : i;
+                const x = baseX + col * colW;
+                // Flag at readable size
+                ctx.font = '11px sans-serif';
+                ctx.fillText(flag, x, startY + row * lineH);
+                // Rank + score
+                ctx.font = '9px "Courier New", monospace';
+                ctx.fillStyle = fg();
+                ctx.fillText(rank + '. ' + scoreStr, x + 16, startY + row * lineH + 1);
+            }
+            ctx.globalAlpha = 1.0;
+        } else {
+            // During play: faint top 5 in corner
+            const count = Math.min(5, leaderboard.length);
+            const lineH = 11;
+            const startY = 26;
+            const startX = 8;
+            ctx.globalAlpha = 0.25;
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            for (let i = 0; i < count; i++) {
+                const entry = leaderboard[i];
+                const flag = countryFlag(entry.country);
+                const scoreStr = String(entry.score).padStart(5, '0');
+                const rank = String(i + 1).padStart(2, ' ');
+                ctx.font = '10px sans-serif';
+                ctx.fillText(flag, startX, startY + i * lineH);
+                ctx.font = '8px "Courier New", monospace';
+                ctx.fillStyle = fg();
+                ctx.fillText(rank + '. ' + scoreStr, startX + 14, startY + i * lineH + 1);
+            }
+            ctx.globalAlpha = 1.0;
         }
-        ctx.globalAlpha = 1.0;
     }
 
     function drawGameOver() {
@@ -997,10 +1022,10 @@
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
-        ctx.fillText('G A M E   O V E R', W / 2, H / 2 - 20);
+        ctx.fillText('G A M E   O V E R', W / 2, H / 2 - 25);
 
         // Restart icon
-        const rx = W / 2, ry = H / 2 + 8;
+        const rx = W / 2, ry = H / 2 - 2;
         ctx.strokeStyle = fg();
         ctx.lineWidth = 2;
         ctx.beginPath();
