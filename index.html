@@ -11,23 +11,117 @@
     </script>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Horse.Horse — Gallop!</title>
+    <title>Horse.Horse — Free Pixel-Art Horse Runner Game | Play Online</title>
+    <meta name="description" content="Play Horse.Horse, a free browser game inspired by the Chrome Dino Game — but with a pixel-art horse and jockey. Jump hurdles, dodge birds, and compete on the global leaderboard. No download needed.">
+    <meta name="keywords" content="horse game, browser game, pixel art game, chrome dino game, endless runner, free online game, horse runner, horse.horse">
+    <meta name="author" content="Heather Huang">
+    <meta name="robots" content="index, follow">
+    <link rel="canonical" href="https://horse.horse">
+
+    <!-- Open Graph -->
+    <meta property="og:title" content="Horse.Horse — Free Pixel-Art Horse Runner Game">
+    <meta property="og:description" content="Chrome Dino Game but with a pixel-art horse and jockey. Jump hurdles, dodge birds, and gallop your way up the global leaderboard. Play free in your browser.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://horse.horse">
+    <meta property="og:image" content="https://horse.horse/og-image.png">
+    <meta property="og:image:width" content="1200">
+    <meta property="og:image:height" content="630">
+    <meta property="og:image:alt" content="Horse.Horse pixel-art horse runner game screenshot">
+    <meta property="og:site_name" content="Horse.Horse">
+    <meta property="og:locale" content="en_US">
+
+    <!-- Twitter Card -->
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Horse.Horse — Free Pixel-Art Horse Runner Game">
+    <meta name="twitter:description" content="Chrome Dino Game but with a pixel-art horse. Jump hurdles, dodge birds, compete globally. Play free now.">
+    <meta name="twitter:image" content="https://horse.horse/og-image.png">
+    <meta name="twitter:image:alt" content="Horse.Horse pixel-art horse runner game screenshot">
+    <meta name="twitter:creator" content="@heathermhuang">
+
+    <!-- Structured Data: WebApplication + VideoGame -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "VideoGame",
+      "name": "Horse.Horse",
+      "url": "https://horse.horse",
+      "description": "A free browser-based endless runner game inspired by the Chrome Dino Game, featuring a pixel-art horse and jockey. Jump over hurdles, dodge birds, and compete on a global leaderboard.",
+      "genre": ["Endless Runner", "Arcade", "Casual"],
+      "gamePlatform": "Web Browser",
+      "applicationCategory": "Game",
+      "operatingSystem": "Any",
+      "playMode": "SinglePlayer",
+      "numberOfPlayers": { "@type": "QuantitativeValue", "value": 1 },
+      "offers": { "@type": "Offer", "price": "0", "priceCurrency": "USD", "availability": "https://schema.org/InStock" },
+      "author": { "@type": "Person", "name": "Heather Huang", "url": "https://h.im" },
+      "image": "https://horse.horse/og-image.png",
+      "inLanguage": "en",
+      "isAccessibleForFree": true,
+      "browserRequirements": "Requires JavaScript. Works on desktop and mobile browsers."
+    }
+    </script>
+
+    <!-- FAQ Structured Data for AEO -->
+    <script type="application/ld+json">
+    {
+      "@context": "https://schema.org",
+      "@type": "FAQPage",
+      "mainEntity": [
+        {
+          "@type": "Question",
+          "name": "What is Horse.Horse?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Horse.Horse is a free browser game inspired by the Chrome Dino Game. Instead of a T-Rex, you ride a pixel-art horse and jockey over hurdles, hedges, and water jumps while dodging birds. It features a global leaderboard, day/night cycles, and works on both desktop and mobile."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "How do you play Horse.Horse?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Press Space or tap the screen to jump. Press the down arrow key or swipe down on mobile to duck under birds. The horse speeds up over time. Avoid obstacles to keep running and climb the global leaderboard."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Is Horse.Horse free to play?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes, Horse.Horse is completely free to play in any web browser. No download or account required. Just visit horse.horse and press Space to start."
+          }
+        },
+        {
+          "@type": "Question",
+          "name": "Does Horse.Horse work on mobile?",
+          "acceptedAnswer": {
+            "@type": "Answer",
+            "text": "Yes. Tap to jump, swipe down to duck. The game scales to fit your screen and supports touch controls on all mobile browsers."
+          }
+        }
+      ]
+    }
+    </script>
+
     <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🐴</text></svg>">
     <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
     <div id="game-wrap">
-        <canvas id="game"></canvas>
+        <h1 class="site-title">horse.horse</h1>
+        <canvas id="game" aria-label="Horse.Horse game — press Space to start, arrow keys to play"></canvas>
     </div>
-    <div class="footer">
-        Vibe coded by <a href="https://h.im/?ref=horse.horse" target="_blank">@heathermhuang</a>
-        <span>·</span>
-        <a href="/terms.html">Terms</a>
-        <span>·</span>
-        <a href="/privacy.html">Privacy</a>
-        <span>·</span>
-        <a href="https://github.com/heathermhuang/horse.horse" target="_blank">GitHub</a>
-    </div>
+    <footer class="footer">
+        <nav aria-label="Footer navigation">
+            Vibe coded by <a href="https://h.im/?ref=horse.horse" target="_blank" rel="noopener">@heathermhuang</a>
+            <span>·</span>
+            <a href="/terms.html">Terms</a>
+            <span>·</span>
+            <a href="/privacy.html">Privacy</a>
+            <span>·</span>
+            <a href="https://github.com/heathermhuang/horse.horse" target="_blank" rel="noopener">GitHub</a>
+        </nav>
+    </footer>
     <script src="js/game.js"></script>
 </body>
 </html>

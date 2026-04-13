@@ -8,6 +8,9 @@ export default {
         if (url.pathname === '/api/scores' && request.method === 'POST') {
             return handlePostScore(request, env);
         }
+        if (url.pathname === '/api/stats' && request.method === 'GET') {
+            return handleGetStats(env);
+        }
 
         // Everything else: serve static assets
         return env.ASSETS.fetch(request);
@@ -16,7 +19,7 @@ export default {
 
 async function handleGetScores(env) {
     const { results } = await env.DB.prepare(
-        'SELECT score, country FROM scores ORDER BY score DESC LIMIT 20'
+        'SELECT score, country FROM scores ORDER BY score DESC LIMIT 100'
     ).all();
 
     return new Response(JSON.stringify(results), {
@@ -42,6 +45,14 @@ async function handlePostScore(request, env) {
 
     // --- Anti-cheat validation ---
 
+    // Require session ID and play time (game always sends these)
+    if (!sessionId || typeof sessionId !== 'string') {
+        return jsonResponse({ error: 'Missing session' }, 400);
+    }
+    if (typeof playTime !== 'number' || playTime <= 0) {
+        return jsonResponse({ error: 'Missing play time' }, 400);
+    }
+
     if (typeof score !== 'number' || !Number.isInteger(score) || score < 1) {
         return jsonResponse({ error: 'Invalid score' }, 400);
     }
@@ -49,35 +60,43 @@ async function handlePostScore(request, env) {
         return jsonResponse({ error: 'Score too high' }, 400);
     }
 
-    // Physics plausibility: max ~18 score/sec, allow generous 20
-    if (typeof playTime === 'number' && playTime > 0) {
-        const maxPossible = (playTime / 1000) * 20;
-        if (score > maxPossible) {
-            return jsonResponse({ error: 'Score/time mismatch' }, 400);
-        }
+    // Physics plausibility: max ~15 score/sec at top speed
+    const maxPossible = (playTime / 1000) * 15;
+    if (score > maxPossible) {
+        return jsonResponse({ error: 'Score/time mismatch' }, 400);
     }
 
-    // Max speed sanity (game caps at 12)
-    if (typeof maxSpeed === 'number' && maxSpeed > 15) {
+    // Max speed sanity (game caps at 12, allow tiny float drift)
+    if (typeof maxSpeed === 'number' && maxSpeed > 12.5) {
         return jsonResponse({ error: 'Invalid speed' }, 400);
     }
 
-    // Rate limiting: 1 score per session per 5 seconds
-    if (sessionId) {
-        const recent = await env.DB.prepare(
-            'SELECT COUNT(*) as cnt FROM scores WHERE session_id = ? AND created_at > datetime("now", "-5 seconds")'
-        ).bind(sessionId).first();
-        if (recent && recent.cnt > 0) {
-            return jsonResponse({ error: 'Too fast' }, 429);
+    // Obstacles sanity: roughly 1 obstacle per 50-100 score points
+    if (typeof obstaclesPassed === 'number' && score > 200) {
+        if (obstaclesPassed < score / 200) {
+            return jsonResponse({ error: 'Invalid obstacles' }, 400);
         }
     }
 
-    // Only insert if score qualifies for top 20
+    // Rate limiting: 1 score per session per 5 seconds
+    const recent = await env.DB.prepare(
+        'SELECT COUNT(*) as cnt FROM scores WHERE session_id = ? AND created_at > datetime("now", "-5 seconds")'
+    ).bind(sessionId).first();
+    if (recent && recent.cnt > 0) {
+        return jsonResponse({ error: 'Too fast' }, 429);
+    }
+
+    // Increment total play count (every valid game)
+    await env.DB.prepare(
+        "UPDATE stats SET value = value + 1 WHERE key = 'total_plays'"
+    ).run();
+
+    // Only insert if score qualifies for top 100
     const { results: top } = await env.DB.prepare(
-        'SELECT score FROM scores ORDER BY score DESC LIMIT 20'
+        'SELECT score FROM scores ORDER BY score DESC LIMIT 100'
     ).all();
 
-    if (top.length >= 20 && score <= top[top.length - 1].score) {
+    if (top.length >= 100 && score <= top[top.length - 1].score) {
         return jsonResponse({ rank: null });
     }
 
@@ -99,6 +118,19 @@ async function handlePostScore(request, env) {
     return jsonResponse({
         rank: (rankResult?.rank || 0) + 1,
         country
+    });
+}
+
+async function handleGetStats(env) {
+    const row = await env.DB.prepare(
+        "SELECT value FROM stats WHERE key = 'total_plays'"
+    ).first();
+    return new Response(JSON.stringify({ totalPlays: row?.value || 0 }), {
+        headers: {
+            'Content-Type': 'application/json',
+            'Cache-Control': 'public, max-age=10',
+            'Access-Control-Allow-Origin': '*'
+        }
     });
 }
 

@@ -13,6 +13,15 @@ html, body {
     max-width: 700px;
     padding: 0 20px;
 }
+.site-title {
+    font-family: 'Courier New', monospace;
+    font-size: 14px;
+    font-weight: bold;
+    color: #535353;
+    text-align: center;
+    letter-spacing: 1px;
+    margin-bottom: 8px;
+}
 canvas {
     width: 100%;
     display: block;
@@ -36,3 +45,9 @@ canvas {
     color: #535353;
 }
 .footer span { margin: 0 6px; }
+.footer-tagline {
+    font-size: 10px;
+    color: #bbb;
+    margin-bottom: 4px;
+    max-width: 500px;
+}

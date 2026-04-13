@@ -379,7 +379,7 @@
         { parts: [[0, 4, 14, 3], [4, 0, 4, 4], [12, 5, 3, 2], [0, 3, 2, 2]], w: 15, h: 10 },
         { parts: [[0, 3, 14, 3], [4, 6, 4, 4], [12, 2, 3, 2], [0, 3, 2, 2]], w: 15, h: 10 },
     ];
-    const BIRD_COLLISION_BOXES = [[0, 3, 14, 4]];
+    const BIRD_COLLISION_BOXES = [[0, 1, 14, 8]];
 
     const GROUND_OBS = [OBS.hurdleLow, OBS.hurdleTall, OBS.hedge, OBS.oxer, OBS.waterJump];
     const GAP_COEFFICIENT = 0.6;
@@ -448,9 +448,12 @@
     let ghostMarkers = [];
     let ghostNotification = null;
     let sessionId = crypto.randomUUID();
+    let lastRank = null;
+    let lastScore = 0;
     let obstaclesPassed = 0;
     let playStartTime = 0;
     let maxSpeedReached = 0;
+    let totalPlays = 0;
 
     // Mobile speed adjustment
     let currentSpeed;
@@ -790,6 +793,8 @@
             navigator.vibrate(200);
         }
         const s = Math.floor(score);
+        lastScore = s;
+        lastRank = null;
         if (s > sessionBest) sessionBest = s;
         if (s > hiScore) {
             hiScore = s;
@@ -813,7 +818,9 @@
             });
             if (res.ok) {
                 const data = await res.json();
-                if (data.rank && data.rank <= 20) fetchLeaderboard();
+                if (data.rank && data.rank <= 10) lastRank = data.rank;
+                if (data.rank && data.rank <= 100) fetchLeaderboard();
+                fetchStats();
             }
         } catch (e) { /* silent */ }
     }
@@ -824,6 +831,16 @@
             if (res.ok) {
                 leaderboard = await res.json();
                 buildGhostMarkers();
+            }
+        } catch (e) { /* silent */ }
+    }
+
+    async function fetchStats() {
+        try {
+            const res = await fetch('/api/stats');
+            if (res.ok) {
+                const data = await res.json();
+                totalPlays = data.totalPlays || 0;
             }
         } catch (e) { /* silent */ }
     }
@@ -887,7 +904,7 @@
             }
         }
 
-        // Ghost markers (leaderboard entries)
+        // Ghost markers (leaderboard entries) — country flag on a pole
         for (const g of ghostMarkers) {
             if (!g.triggered || g.x < -40 || g.x > W + 40) continue;
             const gx = g.x;
@@ -896,17 +913,12 @@
             ctx.globalAlpha = 0.35;
             ctx.fillStyle = isNight ? '#8888ff' : '#aaaacc';
             for (let dy = 0; dy < 30; dy += 4) ctx.fillRect(gx + 6, gy + dy, 2, 2);
-            // Pennant
-            ctx.globalAlpha = 0.6;
-            ctx.fillStyle = isNight ? '#6666cc' : '#9999bb';
-            ctx.fillRect(gx + 8, gy, 14, 9);
-            // Rank on pennant
+            // Country flag emoji
             ctx.globalAlpha = 0.85;
-            ctx.font = 'bold 7px "Courier New", monospace';
-            ctx.textAlign = 'center';
-            ctx.textBaseline = 'middle';
-            ctx.fillStyle = isNight ? '#ffffff' : '#333333';
-            ctx.fillText('#' + g.rank, gx + 15, gy + 5);
+            ctx.font = '11px sans-serif';
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
+            ctx.fillText(countryFlag(g.country), gx + 8, gy - 1);
             ctx.globalAlpha = 1.0;
         }
 
@@ -958,11 +970,13 @@
             ctx.globalAlpha = 1.0;
         }
 
-        // Leaderboard
-        drawLeaderboard();
-
         // Overlays
-        if (state === 'dead') drawGameOver();
+        if (state === 'dead') {
+            drawGameOver();      // solid bg first
+            drawLeaderboard();   // leaderboard on top
+        } else {
+            drawLeaderboard();   // faint in-game leaderboard
+        }
         if (state === 'waiting') drawIdle();
     }
 
@@ -984,6 +998,14 @@
         ctx.font = '10px "Courier New", monospace';
         ctx.fillStyle = isNight ? 'rgba(224,224,224,0.4)' : 'rgba(83,83,83,0.4)';
         ctx.fillText('HI ' + hiStr, W - 85, 12);
+
+        // Total plays
+        if (totalPlays > 0) {
+            ctx.font = '8px "Courier New", monospace';
+            ctx.fillStyle = isNight ? 'rgba(224,224,224,0.25)' : 'rgba(83,83,83,0.25)';
+            ctx.textAlign = 'right';
+            ctx.fillText(totalPlays.toLocaleString() + ' PLAYS', W - 10, 26);
+        }
     }
 
     function drawLeaderboard() {
@@ -991,18 +1013,26 @@
         const isDead = state === 'dead';
 
         if (isDead) {
-            // Death screen: show top 10 below the game-over area
+            // Death screen: leaderboard over game scene
             const count = Math.min(10, leaderboard.length);
-            const startY = H / 2 + 28;
-            const lineH = 11;
-            ctx.globalAlpha = 0.85;
-            ctx.textAlign = 'left';
-            ctx.textBaseline = 'top';
+            const startY = lastRank ? 62 : 52;
+            const lineH = 10;
+            const rows = Math.min(5, count);
+            const dark = isNight ? '#ffffff' : '#222222';
 
             // Two columns centered
-            const colW = 130;
+            const colW = 125;
             const totalW = count > 5 ? colW * 2 : colW;
             const baseX = Math.round((W - totalW) / 2);
+
+            // Opaque panel behind leaderboard for readability
+            ctx.fillStyle = bg();
+            ctx.globalAlpha = 0.85;
+            ctx.fillRect(baseX - 6, startY - 4, totalW + 12, rows * lineH + 8);
+            ctx.globalAlpha = 1.0;
+
+            ctx.textAlign = 'left';
+            ctx.textBaseline = 'top';
 
             for (let i = 0; i < count; i++) {
                 const entry = leaderboard[i];
@@ -1012,63 +1042,98 @@
                 const col = i >= 5 ? 1 : 0;
                 const row = i >= 5 ? i - 5 : i;
                 const x = baseX + col * colW;
-                // Flag at readable size
+                const rowY = startY + row * lineH;
+
+                // Highlight player's entry
+                const isPlayer = lastRank && (i + 1) === lastRank;
+                if (isPlayer) {
+                    ctx.fillStyle = isNight ? 'rgba(255,204,0,0.25)' : 'rgba(204,136,0,0.15)';
+                    ctx.fillRect(x - 2, rowY - 1, colW - 4, lineH);
+                }
+
+                // Flag
                 ctx.font = '11px sans-serif';
-                ctx.fillText(flag, x, startY + row * lineH);
+                ctx.fillText(flag, x, rowY);
                 // Rank + score
-                ctx.font = '9px "Courier New", monospace';
-                ctx.fillStyle = fg();
-                ctx.fillText(rank + '. ' + scoreStr, x + 16, startY + row * lineH + 1);
+                ctx.font = 'bold 9px "Courier New", monospace';
+                ctx.fillStyle = isPlayer ? (isNight ? '#ffcc00' : '#b87800') : dark;
+                ctx.fillText(rank + '. ' + scoreStr, x + 16, rowY + 1);
             }
-            ctx.globalAlpha = 1.0;
         } else {
-            // During play: faint top 5 in corner
-            const count = Math.min(5, leaderboard.length);
+            // During play: top 10 in two columns, top-left corner
+            const count = Math.min(10, leaderboard.length);
             const lineH = 11;
             const startY = 26;
             const startX = 8;
-            ctx.globalAlpha = 0.25;
+            const colW = 90;
             ctx.textAlign = 'left';
             ctx.textBaseline = 'top';
+            ctx.fillStyle = fg();
             for (let i = 0; i < count; i++) {
                 const entry = leaderboard[i];
                 const flag = countryFlag(entry.country);
                 const scoreStr = String(entry.score).padStart(5, '0');
                 const rank = String(i + 1).padStart(2, ' ');
+                const col = i >= 5 ? 1 : 0;
+                const row = i >= 5 ? i - 5 : i;
+                const x = startX + col * colW;
+                const rowY = startY + row * lineH;
+                ctx.globalAlpha = 0.35;
+                // Flag
                 ctx.font = '10px sans-serif';
-                ctx.fillText(flag, startX, startY + i * lineH);
+                ctx.fillStyle = fg();
+                ctx.fillText(flag, x, rowY);
+                // Rank + score
                 ctx.font = '8px "Courier New", monospace';
                 ctx.fillStyle = fg();
-                ctx.fillText(rank + '. ' + scoreStr, startX + 14, startY + i * lineH + 1);
+                ctx.fillText(rank + '. ' + scoreStr, x + 14, rowY + 1);
             }
             ctx.globalAlpha = 1.0;
         }
     }
 
     function drawGameOver() {
-        ctx.fillStyle = fg();
+        // Semi-transparent overlay — game scene stays visible underneath
+        ctx.fillStyle = bg();
+        ctx.globalAlpha = 0.65;
+        ctx.fillRect(0, 0, W, H);
+        ctx.globalAlpha = 1.0;
+
+        const dark = isNight ? '#ffffff' : '#222222';
+
+        // GAME OVER title
+        ctx.fillStyle = dark;
         ctx.font = 'bold 14px "Courier New", monospace';
         ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText('G A M E   O V E R', W / 2, H / 2 - 25);
+        ctx.textBaseline = 'top';
+        ctx.fillText('G A M E   O V E R', W / 2, 12);
+
+        let restartY = 32;
+
+        if (lastRank) {
+            ctx.font = 'bold 10px "Courier New", monospace';
+            ctx.fillStyle = isNight ? '#ffcc00' : '#b87800';
+            ctx.fillText('#' + lastRank + '  ' + String(lastScore).padStart(5, '0') + '  — NEW TOP 10!', W / 2, 30);
+            restartY = 44;
+        }
 
         // Restart icon
-        const rx = W / 2, ry = H / 2 - 2;
-        ctx.strokeStyle = fg();
-        ctx.lineWidth = 2;
+        const rx = W / 2, ry = restartY + 6;
+        ctx.strokeStyle = dark;
+        ctx.lineWidth = 1.5;
         ctx.beginPath();
-        ctx.arc(rx, ry, 10, -Math.PI * 0.5, Math.PI);
+        ctx.arc(rx, ry, 7, -Math.PI * 0.5, Math.PI);
         ctx.stroke();
         ctx.beginPath();
-        ctx.moveTo(rx - 10, ry - 4);
-        ctx.lineTo(rx - 10, ry + 4);
-        ctx.lineTo(rx - 5, ry);
-        ctx.fillStyle = fg();
+        ctx.moveTo(rx - 7, ry - 3);
+        ctx.lineTo(rx - 7, ry + 3);
+        ctx.lineTo(rx - 3, ry);
+        ctx.fillStyle = dark;
         ctx.fill();
         ctx.beginPath();
-        ctx.moveTo(rx - 4, ry - 14);
-        ctx.lineTo(rx, ry - 10);
-        ctx.lineTo(rx + 4, ry - 14);
+        ctx.moveTo(rx - 3, ry - 10);
+        ctx.lineTo(rx, ry - 7);
+        ctx.lineTo(rx + 3, ry - 10);
         ctx.fill();
     }
 
@@ -1160,13 +1225,32 @@
         }
     });
 
+    // ── Touch / pointer — swipe down to duck on mobile ──
+    let pointerStartY = null;
+    let pointerIsDuck = false;
+
     canvas.addEventListener('pointerdown', e => {
         e.preventDefault();
+        pointerStartY = e.clientY;
+        pointerIsDuck = false;
         onJump();
+    });
+
+    canvas.addEventListener('pointermove', e => {
+        if (pointerStartY !== null && !pointerIsDuck) {
+            const dy = e.clientY - pointerStartY;
+            if (dy > 25) {
+                pointerIsDuck = true;
+                onDuckDown();
+            }
+        }
     });
 
     canvas.addEventListener('pointerup', e => {
         onJumpRelease();
+        if (pointerIsDuck) onDuckUp();
+        pointerStartY = null;
+        pointerIsDuck = false;
     });
 
     // ═══════════════════════════════════
@@ -1198,5 +1282,6 @@
     }
 
     fetchLeaderboard();
+    fetchStats();
     requestAnimationFrame(loop);
 })();
