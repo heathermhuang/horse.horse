@@ -447,7 +447,9 @@
     let leaderboard = [];
     let ghostMarkers = [];
     let ghostNotification = null;
-    let sessionId = crypto.randomUUID();
+    // sessionId is issued by the server on reset(); we never self-generate it.
+    // If issuance fails we leave it null and skip score submission.
+    let sessionId = null;
     let lastRank = null;
     let lastScore = 0;
     let obstaclesPassed = 0;
@@ -496,6 +498,10 @@
         playStartTime = performance.now();
         maxSpeedReached = 0;
         ghostNotification = null;
+        // Ask the server for a fresh session token. Fire-and-forget — if it
+        // fails, submitScore() will see a null sessionId and skip submission.
+        sessionId = null;
+        requestSession();
         for (const g of ghostMarkers) {
             g.triggered = false;
             g.x = -100;
@@ -803,7 +809,20 @@
         submitScore(s);
     }
 
+    async function requestSession() {
+        try {
+            const res = await fetch('/api/session', { method: 'POST' });
+            if (res.ok) {
+                const data = await res.json();
+                if (data && typeof data.sessionId === 'string') {
+                    sessionId = data.sessionId;
+                }
+            }
+        } catch (e) { /* silent — submitScore will noop without a session */ }
+    }
+
     async function submitScore(s) {
+        if (!sessionId) return;  // server never issued us a token; don't submit
         try {
             const res = await fetch('/api/scores', {
                 method: 'POST',
