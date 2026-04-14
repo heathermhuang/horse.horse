@@ -60,16 +60,20 @@ wrangler.toml.example   <- Cloudflare config template (copy to wrangler.toml)
 
 | Endpoint | Method | Description |
 |----------|--------|-------------|
+| `/api/session` | `POST` | Issues a server-tracked session token; required before score submission |
 | `/api/scores` | `GET` | Returns top 100 scores as JSON, cached 30s |
-| `/api/scores` | `POST` | Submit a score with anti-cheat validation |
+| `/api/scores` | `POST` | Submit a score with the issued session token |
 | `/api/stats` | `GET` | Returns `{ totalPlays }` global play count, cached 10s |
 
 **Anti-cheat measures:**
-- Session ID and play time required on every submission
-- Physics plausibility check (score vs. play time, max 15 score/sec)
-- Max speed validation (game caps at 12, rejects >12.5)
-- Obstacle count sanity check (min 1 obstacle per 200 score)
-- Rate limiting (1 submission per 5s per session)
+- Session tokens are server-issued only — clients cannot mint their own
+- Session must be ≥3s and ≤30min old (measured on the server clock)
+- Client-reported `playTime` must match server-measured session age
+- Score rate capped at 20/sec against server-measured session age
+- Sessions are single-use — atomically consumed on submission (replay-proof)
+- Session issuance rate-limited to 30/min/IP
+- Max speed validation (game caps at 12, rejects >12.5 or <7 on scoring games)
+- Obstacle count sanity check (min 1 per 200 score, max 1 per score point)
 - Score cap at 99,999
 - Only top-100-worthy scores are stored
 
@@ -93,6 +97,8 @@ cp wrangler.toml.example wrangler.toml
 # Create the D1 database and tables
 npx wrangler d1 create horse-leaderboard
 npx wrangler d1 execute horse-leaderboard --remote --command "CREATE TABLE IF NOT EXISTS scores (id INTEGER PRIMARY KEY AUTOINCREMENT, score INTEGER NOT NULL, country TEXT DEFAULT 'XX', session_id TEXT, max_speed REAL, obstacles_passed INTEGER, created_at DATETIME DEFAULT CURRENT_TIMESTAMP)"
+npx wrangler d1 execute horse-leaderboard --remote --command "CREATE TABLE IF NOT EXISTS sessions (sid TEXT PRIMARY KEY, ip TEXT NOT NULL, iat INTEGER NOT NULL, consumed INTEGER NOT NULL DEFAULT 0)"
+npx wrangler d1 execute horse-leaderboard --remote --command "CREATE INDEX IF NOT EXISTS idx_sessions_ip_iat ON sessions(ip, iat); CREATE INDEX IF NOT EXISTS idx_sessions_iat ON sessions(iat)"
 npx wrangler d1 execute horse-leaderboard --remote --command "CREATE TABLE IF NOT EXISTS stats (key TEXT PRIMARY KEY, value INTEGER DEFAULT 0)"
 npx wrangler d1 execute horse-leaderboard --remote --command "INSERT OR IGNORE INTO stats (key, value) VALUES ('total_plays', 0)"
 
