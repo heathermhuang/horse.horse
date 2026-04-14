@@ -29,16 +29,18 @@
 <body>
     <a href="/" class="back">&larr; back to game</a>
     <h1>Privacy Policy</h1>
-    <p class="updated">Last updated: April 13, 2026</p>
+    <p class="updated">Last updated: April 14, 2026</p>
 
     <h2>What we collect</h2>
-    <p>When you submit a score to the leaderboard, we store:</p>
+    <p>When you play and submit a score, we store:</p>
     <p>- Your score and play session stats (used for anti-cheat validation)<br>
        - Your country, detected automatically from your IP region via Cloudflare<br>
-       - A random session identifier (generated in your browser, not linked to your identity)</p>
+       - A server-issued session identifier (a random UUID that lets us confirm a game was actually played; single-use, short-lived, not linked to your identity)</p>
+
+    <p>To enforce rate limits on session creation (so a bot can't flood the leaderboard) we also temporarily record the IP address that requested a session. IPs are kept for up to 2 hours in the session table and are not logged anywhere else, not linked to scores, and not shared.</p>
 
     <h2>What we don't collect</h2>
-    <p>We don't collect your name, email, IP address, or any personally identifiable information. We don't use cookies for tracking. We don't sell data to anyone.</p>
+    <p>We don't collect your name, email, or any personally identifying information beyond the short-lived anti-abuse record described above. We don't use cookies for tracking. We don't sell data to anyone.</p>
 
     <h2>Analytics</h2>
     <p>We use Google Analytics to understand general usage patterns (page views, country-level traffic). Google's privacy policy applies to data collected by their scripts.</p>
