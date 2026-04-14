@@ -37,6 +37,11 @@ canvas {
     text-align: center;
     letter-spacing: 0.3px;
 }
+.footer-credit {
+    margin-top: 4px;
+    font-size: 10px;
+    color: #bbb;
+}
 .footer a {
     color: #999;
     text-decoration: none;
