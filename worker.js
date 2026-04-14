@@ -26,22 +26,47 @@ export default {
 // server-tracked UUID, record (ip, iat), and require it back on /api/scores.
 // On submit we check: exists, not consumed, age plausible, then mark consumed.
 // This kills replay attacks and caps play-time inflation at the server clock.
+// Bucket an IP for rate-limit purposes. A single IPv6 user gets a /64 prefix's
+// worth of addresses for free, so we key v6 rate limits on the /64 rather than
+// the full address. v4 addresses stay fully specific.
+function ipBucket(ip) {
+    if (!ip || ip === 'unknown') return 'unknown';
+    if (ip.includes(':')) {
+        // IPv6 — take first 4 hextets (the /64 network prefix).
+        const parts = ip.split(':');
+        return parts.slice(0, 4).join(':') + '::/64';
+    }
+    return ip;  // IPv4
+}
+
 async function handleCreateSession(request, env) {
     const ip = request.headers.get('CF-Connecting-IP') || 'unknown';
+    const bucket = ipBucket(ip);
     const now = Date.now();
+    const windowStart = now - 60_000;
 
-    // Rate limit: at most 30 session issuances per IP per minute.
-    const recent = await env.DB.prepare(
+    // Per-bucket rate limit: 30 sessions/min (IPv6 keyed on /64 prefix so a
+    // single user can't rotate through their subnet to bypass the cap).
+    const perIp = await env.DB.prepare(
         'SELECT COUNT(*) AS cnt FROM sessions WHERE ip = ? AND iat > ?'
-    ).bind(ip, now - 60_000).first();
-    if (recent && recent.cnt >= 30) {
+    ).bind(bucket, windowStart).first();
+    if (perIp && perIp.cnt >= 30) {
         return jsonResponse({ error: 'Too many sessions' }, 429);
+    }
+
+    // Global circuit breaker: cap total issuance at 2000/min across the
+    // planet. Real traffic is nowhere near this; trips only under attack.
+    const global = await env.DB.prepare(
+        'SELECT COUNT(*) AS cnt FROM sessions WHERE iat > ?'
+    ).bind(windowStart).first();
+    if (global && global.cnt >= 2000) {
+        return jsonResponse({ error: 'Service busy' }, 429);
     }
 
     const sid = crypto.randomUUID();
     await env.DB.prepare(
         'INSERT INTO sessions (sid, ip, iat, consumed) VALUES (?, ?, ?, 0)'
-    ).bind(sid, ip, now).run();
+    ).bind(sid, bucket, now).run();
 
     // Best-effort cleanup: drop sessions older than 2h. Cheap with index.
     await env.DB.prepare(
@@ -171,10 +196,14 @@ async function handlePostScore(request, env) {
         return jsonResponse({ error: 'Session already used' }, 400);
     }
 
-    // Increment total play count (every valid game)
-    await env.DB.prepare(
-        "UPDATE stats SET value = value + 1 WHERE key = 'total_plays'"
-    ).run();
+    // Increment total play count — only for games that lasted long enough to
+    // be a real play, not the minimum-viable 3-second score-of-1 that a bot
+    // could loop to inflate the counter.
+    if (sessionAge >= 8000 && score >= 20) {
+        await env.DB.prepare(
+            "UPDATE stats SET value = value + 1 WHERE key = 'total_plays'"
+        ).run();
+    }
 
     // Only insert if score qualifies for top 100
     const { results: top } = await env.DB.prepare(
