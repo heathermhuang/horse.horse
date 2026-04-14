@@ -20,7 +20,19 @@ const MIME = {
 };
 
 http.createServer((req, res) => {
-    let filePath = path.join(ROOT, req.url === '/' ? 'index.html' : req.url);
+    // Parse + normalize the URL so `..` sequences can't escape ROOT.
+    let pathname;
+    try {
+        pathname = decodeURIComponent(new URL(req.url, 'http://localhost').pathname);
+    } catch {
+        res.writeHead(400); res.end('Bad request'); return;
+    }
+    const rel = path.normalize(pathname === '/' ? '/index.html' : pathname);
+    const filePath = path.join(ROOT, rel);
+    // Belt-and-braces: refuse anything that resolved outside ROOT.
+    if (filePath !== ROOT && !filePath.startsWith(ROOT + path.sep)) {
+        res.writeHead(403); res.end('Forbidden'); return;
+    }
     const ext = path.extname(filePath);
     const contentType = MIME[ext] || 'application/octet-stream';
 
@@ -33,4 +45,4 @@ http.createServer((req, res) => {
         res.writeHead(200, { 'Content-Type': contentType });
         res.end(data);
     });
-}).listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
+}).listen(PORT, '127.0.0.1', () => console.log(`Server running on http://localhost:${PORT}`));
