@@ -1303,4 +1303,90 @@
     fetchLeaderboard();
     fetchStats();
     requestAnimationFrame(loop);
+
+    // ═══════════════════════════════════
+    // WebMCP — expose game controls to in-browser AI agents
+    // Spec: https://webmachinelearning.github.io/webmcp/
+    // ═══════════════════════════════════
+
+    function registerWebMCP() {
+        const mc = (typeof navigator !== 'undefined') && navigator.modelContext;
+        if (!mc || typeof mc.provideContext !== 'function') return false;
+
+        const snapshot = () => ({
+            state,
+            score: Math.floor(score),
+            highScore: hiScore,
+            speed: Number((currentSpeed ?? speed ?? 0).toFixed(3)),
+            obstaclesPassed,
+            isNight
+        });
+
+        mc.provideContext({
+            tools: [
+                {
+                    name: 'start_game',
+                    description: 'Begin a new Horse.Horse run from the waiting or game-over screen. No-op if already playing.',
+                    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+                    execute: async () => {
+                        if (state === 'waiting' || state === 'dead') onJump();
+                        return snapshot();
+                    }
+                },
+                {
+                    name: 'jump',
+                    description: 'Make the horse jump. Optionally hold the jump input for hold_ms (0-400) to jump higher.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            hold_ms: { type: 'number', minimum: 0, maximum: 400, description: 'Milliseconds to hold the jump. Defaults to a standard short hop.' }
+                        },
+                        additionalProperties: false
+                    },
+                    execute: async (input) => {
+                        const hold = Math.max(0, Math.min(400, Number(input?.hold_ms ?? 0)));
+                        onJump();
+                        if (hold > 0) await new Promise(r => setTimeout(r, hold));
+                        onJumpRelease();
+                        return snapshot();
+                    }
+                },
+                {
+                    name: 'duck',
+                    description: 'Crouch the horse for duration_ms (100-2000). Useful for passing under pterodactyls.',
+                    inputSchema: {
+                        type: 'object',
+                        properties: {
+                            duration_ms: { type: 'number', minimum: 100, maximum: 2000, default: 400 }
+                        },
+                        additionalProperties: false
+                    },
+                    execute: async (input) => {
+                        const dur = Math.max(100, Math.min(2000, Number(input?.duration_ms ?? 400)));
+                        onDuckDown();
+                        await new Promise(r => setTimeout(r, dur));
+                        onDuckUp();
+                        return snapshot();
+                    }
+                },
+                {
+                    name: 'get_state',
+                    description: 'Return the current game state: state, score, highScore, speed, obstaclesPassed, isNight.',
+                    inputSchema: { type: 'object', properties: {}, additionalProperties: false },
+                    execute: async () => snapshot()
+                }
+            ]
+        });
+        try { window.modelContextReady = true; } catch {}
+        return true;
+    }
+
+    if (!registerWebMCP()) {
+        // WebMCP shim may be injected after our script runs (e.g., by scanners
+        // or a browser extension). Retry briefly.
+        let tries = 0;
+        const retry = setInterval(() => {
+            if (registerWebMCP() || ++tries > 40) clearInterval(retry);
+        }, 100);
+    }
 })();

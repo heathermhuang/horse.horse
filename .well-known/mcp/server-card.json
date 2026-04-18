@@ -1,0 +1,44 @@
+{
+  "$schema": "https://raw.githubusercontent.com/modelcontextprotocol/modelcontextprotocol/main/schema/server-card.schema.json",
+  "serverInfo": {
+    "name": "horse.horse",
+    "version": "1.0.0",
+    "title": "Horse.Horse",
+    "description": "In-browser runner game exposing its controls to AI agents via WebMCP.",
+    "homepage": "https://horse.horse/",
+    "vendor": "heathermhuang"
+  },
+  "transport": {
+    "type": "webmcp",
+    "mount": "https://horse.horse/",
+    "note": "Tools are registered via navigator.modelContext.provideContext() once the game loads in a browser. There is no remote MCP endpoint."
+  },
+  "capabilities": {
+    "tools": [
+      {
+        "name": "start_game",
+        "description": "Begin a new run from the waiting or game-over screen."
+      },
+      {
+        "name": "jump",
+        "description": "Make the horse jump over an obstacle."
+      },
+      {
+        "name": "duck",
+        "description": "Duck briefly to dodge pterodactyls."
+      },
+      {
+        "name": "get_state",
+        "description": "Return current score, high score, speed, and game state."
+      }
+    ],
+    "resources": [],
+    "prompts": []
+  },
+  "links": [
+    { "rel": "privacy-policy", "href": "https://horse.horse/privacy.html" },
+    { "rel": "terms-of-service", "href": "https://horse.horse/terms.html" },
+    { "rel": "agent-skills", "href": "https://horse.horse/.well-known/agent-skills/index.json" },
+    { "rel": "vcs-git", "href": "https://github.com/heatherbooop/horse.horse" }
+  ]
+}

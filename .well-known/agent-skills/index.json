@@ -1,0 +1,15 @@
+{
+  "$schema": "https://agentskills.io/schema/v0.2.0.json",
+  "version": "0.2.0",
+  "skills": [
+    {
+      "name": "play-horse",
+      "type": "webmcp",
+      "description": "Play the Horse.Horse browser game — a Chrome-Dino-style runner with a pixel horse that jumps over cacti and ducks under pterodactyls.",
+      "url": "https://horse.horse/.well-known/agent-skills/play-horse/SKILL.md",
+      "sha256": "eff6fce4dbe291557d9d77c0a92259196f3563d4533677eed6229aa7cc5e91fc",
+      "version": "1.0.0",
+      "homepage": "https://horse.horse/"
+    }
+  ]
+}

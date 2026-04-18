@@ -1,3 +1,70 @@
+// Agent-readiness: a single Link header advertising discovery resources
+// (RFC 8288). Keeps paths relative so it's valid on any origin.
+const AGENT_LINK_HEADER = [
+    '</sitemap.xml>; rel="sitemap"; type="application/xml"',
+    '</privacy.html>; rel="privacy-policy"',
+    '</terms.html>; rel="terms-of-service"',
+    '</.well-known/agent-skills/index.json>; rel="agent-skills"; type="application/json"',
+    '</.well-known/mcp/server-card.json>; rel="mcp-server"; type="application/json"',
+    '<https://github.com/heatherbooop/horse.horse>; rel="vcs-git"'
+].join(', ');
+
+// Markdown representation served when an agent requests text/markdown.
+const HOMEPAGE_MARKDOWN = `# Horse.Horse
+
+A Chrome Dinosaur Game clone, but with a pixel-art horse instead of a T-Rex.
+
+- **Play:** https://horse.horse/
+- **Controls:** Space or Up Arrow to jump, Down Arrow to duck
+- **Goal:** dodge cacti and pterodactyls, chase a high score
+
+## For AI agents
+
+Horse.Horse exposes a [WebMCP](https://webmachinelearning.github.io/webmcp/) interface
+when loaded in a browser. After the page loads, \`navigator.modelContext\` is populated
+with these tools:
+
+- \`start_game\` — begin a new run from the waiting or game-over screen
+- \`jump\` — make the horse jump
+- \`duck\` — duck for a short window to dodge pterodactyls
+- \`get_state\` — read current score, high score, speed, and game state
+
+See the skill descriptor at [/.well-known/agent-skills/play-horse/SKILL.md](https://horse.horse/.well-known/agent-skills/play-horse/SKILL.md).
+
+## Resources
+
+- [Privacy policy](https://horse.horse/privacy.html)
+- [Terms of use](https://horse.horse/terms.html)
+- [Sitemap](https://horse.horse/sitemap.xml)
+- [Leaderboard API](https://horse.horse/api/scores) — public top-100 scores (JSON)
+- [Source code](https://github.com/heatherbooop/horse.horse)
+`;
+
+function acceptsMarkdown(request) {
+    const accept = (request.headers.get('Accept') || '').toLowerCase();
+    if (!accept) return false;
+    // Require explicit text/markdown; don't match generic */*.
+    return accept.split(',').some(part => part.trim().startsWith('text/markdown'));
+}
+
+async function serveHomepageWithLink(request, env) {
+    if (acceptsMarkdown(request)) {
+        return new Response(HOMEPAGE_MARKDOWN, {
+            headers: {
+                'Content-Type': 'text/markdown; charset=utf-8',
+                'Link': AGENT_LINK_HEADER,
+                'Cache-Control': 'public, max-age=300',
+                'Vary': 'Accept'
+            }
+        });
+    }
+    const res = await env.ASSETS.fetch(request);
+    const headers = new Headers(res.headers);
+    headers.set('Link', AGENT_LINK_HEADER);
+    headers.append('Vary', 'Accept');
+    return new Response(res.body, { status: res.status, statusText: res.statusText, headers });
+}
+
 export default {
     async fetch(request, env) {
         const url = new URL(request.url);
@@ -13,6 +80,12 @@ export default {
         }
         if (url.pathname === '/api/stats' && request.method === 'GET') {
             return handleGetStats(env);
+        }
+
+        // Homepage: attach agent-discovery Link header, and serve a markdown
+        // representation when Accept: text/markdown is requested.
+        if (request.method === 'GET' && (url.pathname === '/' || url.pathname === '/index.html')) {
+            return serveHomepageWithLink(request, env);
         }
 
         // Everything else: serve static assets

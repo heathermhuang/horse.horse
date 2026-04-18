@@ -1,0 +1,52 @@
+# Horse.Horse — robots.txt
+# Preserves the Cloudflare-managed Content Signals block and AI bot rules,
+# plus explicit Sitemap discovery for agents.
+
+# As a condition of accessing this website, you agree to abide by the following
+# content signals:
+# (a)  If a Content-Signal = yes, you may collect content for the corresponding use.
+# (b)  If a Content-Signal = no, you may not collect content for the corresponding use.
+# (c)  If the website operator does not include a Content-Signal for a corresponding
+#      use, the website operator neither grants nor restricts permission via
+#      Content-Signal with respect to the corresponding use.
+#
+# The content signals and their meanings are:
+# search:   building a search index and providing search results.
+# ai-input: inputting content into one or more AI models (e.g., RAG, grounding).
+# ai-train: training or fine-tuning AI models.
+#
+# ANY RESTRICTIONS EXPRESSED VIA CONTENT SIGNALS ARE EXPRESS RESERVATIONS OF
+# RIGHTS UNDER ARTICLE 4 OF THE EUROPEAN UNION DIRECTIVE 2019/790.
+
+User-agent: *
+Content-Signal: search=yes,ai-train=no
+Allow: /
+
+User-agent: Amazonbot
+Disallow: /
+
+User-agent: Applebot-Extended
+Disallow: /
+
+User-agent: Bytespider
+Disallow: /
+
+User-agent: CCBot
+Disallow: /
+
+User-agent: ClaudeBot
+Disallow: /
+
+User-agent: CloudflareBrowserRenderingCrawler
+Disallow: /
+
+User-agent: Google-Extended
+Disallow: /
+
+User-agent: GPTBot
+Disallow: /
+
+User-agent: meta-externalagent
+Disallow: /
+
+Sitemap: https://horse.horse/sitemap.xml
